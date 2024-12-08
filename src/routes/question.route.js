@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   addQuestion,
+  addQuestionsFromJson,
   updateQuestion,
   deleteQuestion,
   getQuestions,
@@ -13,6 +14,7 @@ const router = express.Router();
 
 // Routes
 router.post("/", authenticate, authorize("admin"), addQuestion);
+router.post("/batch", authenticate, authorize("admin"), addQuestionsFromJson);
 router.put("/:id", authenticate, authorize("admin"), updateQuestion);
 router.delete("/:id", authenticate, authorize("admin"), deleteQuestion);
 router.get("/", authenticate, getQuestions);

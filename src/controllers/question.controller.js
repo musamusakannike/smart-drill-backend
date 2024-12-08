@@ -21,6 +21,60 @@ const addQuestion = async (req, res) => {
   }
 };
 
+// Add questions from a list of questions
+const addQuestionsFromJson = async (req, res) => {
+  const { questions } = req.body;
+
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return res
+      .status(400)
+      .json({
+        status: "error",
+        message: "Invalid input. Provide an array of questions.",
+      });
+  }
+
+  try {
+    // Validate and transform input
+    const validQuestions = questions.map((q) => {
+      if (
+        !q.question ||
+        !Array.isArray(q.options) ||
+        q.options.length !== 4 ||
+        !q.correctOption ||
+        !q.tags ||
+        !q.course ||
+        !q.explanation
+      ) {
+        throw new Error("Invalid question structure.");
+      }
+
+      return {
+        question: q.question,
+        options: q.options,
+        correctOption: q.correctOption, // Ensure this is a 1-based index
+        tags: q.tags,
+        course: q.course,
+        explanation: q.explanation,
+        addedBy: req.user._id, // Automatically assign the authenticated user's ID
+      };
+    });
+
+    // Save all questions to the database
+    const savedQuestions = await Question.insertMany(validQuestions);
+
+    res.success(
+      { savedQuestions },
+      `${savedQuestions.length} questions added successfully.`
+    );
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ status: "error", message: error.message || "Server error." });
+  }
+};
+
 // Update a question
 const updateQuestion = async (req, res) => {
   try {
@@ -175,6 +229,7 @@ const getFavoriteQuestions = async (req, res) => {
 
 module.exports = {
   addQuestion,
+  addQuestionsFromJson,
   updateQuestion,
   deleteQuestion,
   getQuestions,
