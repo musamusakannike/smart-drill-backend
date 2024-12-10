@@ -38,12 +38,40 @@ const updateUserDetails = async (req, res) => {
   }
 };
 
-// Get all users (Admin only)
+// Get paginated list of all users (Admin only)
 const getAllUsers = async (req, res) => {
+  const { page = 1, limit = 10, search } = req.query;
+
   try {
-    const users = await User.find().select("-password");
-    res.success({ users }, "All users retrieved successfully.");
+    const skip = (page - 1) * limit;
+
+    // Create a filter object for searching users
+    const filter = {};
+    if (search) {
+      filter.$or = [
+        { fullname: { $regex: search, $options: "i" } }, // Case-insensitive search by fullname
+        { email: { $regex: search, $options: "i" } }, // Case-insensitive search by email
+      ];
+    }
+
+    const totalUsers = await User.countDocuments(filter); // Count matching users
+    const users = await User.find(filter)
+      .skip(skip)
+      .limit(Number(limit))
+      .select("-password") // Exclude the password field from the results
+      .sort({ createdAt: -1 }); // Sort by most recently created users
+
+    res.success(
+      {
+        users,
+        totalUsers,
+        totalPages: Math.ceil(totalUsers / limit),
+        currentPage: Number(page),
+      },
+      "Users retrieved successfully."
+    );
   } catch (error) {
+    console.error(error);
     res
       .status(500)
       .json({ status: "error", message: "Server error.", data: null });
