@@ -78,4 +78,27 @@ const getAllUsers = async (req, res) => {
   }
 };
 
-module.exports = { getUserDetails, updateUserDetails, getAllUsers };
+// Delete a user
+const deleteUser = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found.", data: null });
+    }
+
+    await user.remove();
+
+    res.success(null, "User deleted successfully.");
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ status: "error", message: "Server error.", data: null });
+  }
+};
+
+module.exports = { getUserDetails, updateUserDetails, getAllUsers, deleteUser };
