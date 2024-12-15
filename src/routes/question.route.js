@@ -6,7 +6,8 @@ const {
   deleteQuestion,
   getQuestions,
   toggleFavoriteQuestion,
-  getFavoriteQuestions
+  getFavoriteQuestions,
+  solveQuestion,
 } = require("../controllers/question.controller");
 const { authenticate, authorize } = require("../middlewares/auth.middleware");
 
@@ -20,5 +21,6 @@ router.delete("/:id", authenticate, authorize("admin"), deleteQuestion);
 router.get("/", authenticate, getQuestions);
 router.patch("/favourite/:questionId", authenticate, toggleFavoriteQuestion);
 router.get("/favourite", authenticate, getFavoriteQuestions);
+router.post("/solve", authenticate, solveQuestion);
 
 module.exports = router;

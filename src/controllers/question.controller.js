@@ -1,6 +1,53 @@
 const Question = require("../models/question.model");
 const User = require("../models/user.model");
 const { questionValidation } = require("../utils/validation");
+const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
+
+// Extended Question Schema for Gemini integration
+const questionSchema = {
+  description: "Complete solution for the provided educational question",
+  type: SchemaType.OBJECT,
+  properties: {
+    question: {
+      type: SchemaType.STRING,
+      description: "The educational question provided by the user",
+      nullable: false,
+    },
+    solution: {
+      type: SchemaType.OBJECT,
+      description: "Detailed solution to the question",
+      properties: {
+        explanation: {
+          type: SchemaType.STRING,
+          description: "Detailed step-by-step explanation",
+        },
+        keyPoints: {
+          type: SchemaType.ARRAY,
+          description: "Key points from the solution",
+          items: { type: SchemaType.STRING },
+        },
+        references: {
+          type: SchemaType.ARRAY,
+          description: "References or sources used in the solution",
+          items: { type: SchemaType.STRING },
+        },
+      },
+    },
+    difficultyLevel: {
+      type: SchemaType.STRING,
+      description:
+        "The estimated difficulty level of the question (easy, medium, hard)",
+    },
+    relatedTopics: {
+      type: SchemaType.ARRAY,
+      description: "Topics related to the question",
+      items: { type: SchemaType.STRING },
+    },
+  },
+  required: ["question", "solution"],
+};
 
 // Add a new question
 const addQuestion = async (req, res) => {
@@ -26,12 +73,10 @@ const addQuestionsFromJson = async (req, res) => {
   const { questions } = req.body;
 
   if (!Array.isArray(questions) || questions.length === 0) {
-    return res
-      .status(400)
-      .json({
-        status: "error",
-        message: "Invalid input. Provide an array of questions.",
-      });
+    return res.status(400).json({
+      status: "error",
+      message: "Invalid input. Provide an array of questions.",
+    });
   }
 
   try {
@@ -227,6 +272,37 @@ const getFavoriteQuestions = async (req, res) => {
   }
 };
 
+const solveQuestion = async (req, res) => {
+  const { question } = req.body;
+
+  if (!question) {
+    return res
+      .status(400)
+      .json({ error: "Question is required in the request body" });
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-pro",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: questionSchema,
+      },
+    });
+
+    const prompt = `Solve the following educational question: "${question}". 
+      Provide a detailed explanation, key points, and references. 
+      Include the difficulty level and related topics.`;
+    const result = await model.generateContent(prompt);
+
+    const solution = JSON.parse(result.response.text());
+    return res.json(solution);
+  } catch (error) {
+    console.error("Error solving question:", error);
+    res.status(500).json({ error: "Failed to generate the solution" });
+  }
+};
+
 module.exports = {
   addQuestion,
   addQuestionsFromJson,
@@ -235,4 +311,5 @@ module.exports = {
   getQuestions,
   toggleFavoriteQuestion,
   getFavoriteQuestions,
+  solveQuestion,
 };
