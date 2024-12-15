@@ -3,8 +3,12 @@ const Joi = require("joi");
 const validateSignup = (data) => {
   const schema = Joi.object({
     fullname: Joi.string().min(3).required(),
+    username: Joi.string().alphanum().min(3).max(30).required(),
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required(),
+    university: Joi.string().min(3).required(),
+    course: Joi.string().min(3).required(),
+    role: Joi.string().valid("user", "admin").default("user"),
   });
   return schema.validate(data);
 };

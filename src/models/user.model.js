@@ -1,12 +1,16 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { required } = require("joi");
 
 const userSchema = new mongoose.Schema(
   {
     fullname: { type: String, required: true, trim: true },
+    username: {  type: String, unique:true, required: true, trim: true },
     email: { type: String, required: true, unique: true, trim: true },
     password: { type: String, required: true, minlength: 6 },
     role: { type: String, enum: ["user", "admin"], default: "user" },
+    university: { type: String, required: true, trim: true },
+    course: { type: String, required: true, trim: true },
     favoriteQuestions: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Question" },
     ],
