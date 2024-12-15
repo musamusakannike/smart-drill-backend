@@ -6,7 +6,7 @@ const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
 
 // Extended Question Schema for Gemini integration
-const questionSchema = {
+const solutionSchema = {
   description: "Complete solution for the provided educational question",
   type: SchemaType.OBJECT,
   properties: {
@@ -14,6 +14,57 @@ const questionSchema = {
       type: SchemaType.STRING,
       description: "The educational question provided by the user",
       nullable: false,
+    },
+    solution: {
+      type: SchemaType.OBJECT,
+      description: "Detailed solution to the question",
+      properties: {
+        explanation: {
+          type: SchemaType.STRING,
+          description: "Detailed step-by-step explanation",
+        },
+        keyPoints: {
+          type: SchemaType.ARRAY,
+          description: "Key points from the solution",
+          items: { type: SchemaType.STRING },
+        },
+        references: {
+          type: SchemaType.ARRAY,
+          description: "References or sources used in the solution",
+          items: { type: SchemaType.STRING },
+        },
+      },
+    },
+    difficultyLevel: {
+      type: SchemaType.STRING,
+      description: "The estimated difficulty level of the question (easy, medium, hard)",
+    },
+    relatedTopics: {
+      type: SchemaType.ARRAY,
+      description: "Topics related to the question",
+      items: { type: SchemaType.STRING },
+    },
+  },
+  required: ["question", "solution"],
+};
+
+const solutionFromIdSchema = {
+  description: "Complete solution for the provided educational question",
+  type: SchemaType.OBJECT,
+  properties: {
+    question: {
+      type: SchemaType.STRING,
+      description: "The educational question provided by the user",
+      nullable: false,
+    },
+    options: {
+      type: SchemaType.ARRAY,
+      description: "The options for the question",
+      items: { type: SchemaType.STRING },
+    },
+    correctOption: {
+      type: SchemaType.NUMBER,
+      description: "The correct option index (1-based)",
     },
     solution: {
       type: SchemaType.OBJECT,
@@ -46,7 +97,7 @@ const questionSchema = {
       items: { type: SchemaType.STRING },
     },
   },
-  required: ["question", "solution"],
+  required: ["question", "options", "correctOption", "solution"],
 };
 
 // Add a new question
@@ -286,7 +337,7 @@ const solveQuestion = async (req, res) => {
       model: "gemini-1.5-pro",
       generationConfig: {
         responseMimeType: "application/json",
-        responseSchema: questionSchema,
+        responseSchema: solutionSchema,
       },
     });
 
@@ -303,6 +354,53 @@ const solveQuestion = async (req, res) => {
   }
 };
 
+// Solve question by ID
+const solveQuestionById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Find the question in the database
+    const question = await Question.findById(id);
+    if (!question) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    // Prepare prompt for Gemini API
+    const prompt = `
+      Analyze the following question and options. Identify the correct answer, explain why it is correct, and provide detailed reasoning.
+
+      Question: ${question.question}
+      Options:
+      1. ${question.options[0]}
+      2. ${question.options[1]}
+      3. ${question.options[2]}
+      4. ${question.options[3]}
+
+      Include the explanation, key points, references, difficulty level, and related topics in the response.
+    `;
+
+    // Interact with Gemini API
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-pro",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: solutionFromIdSchema,
+      },
+    });
+
+    const result = await model.generateContent(prompt);
+    const solution = JSON.parse(result.response.text());
+
+    // Add correct option for completeness
+    solution.correctOption = question.correctOption;
+
+    return res.json(solution);
+  } catch (error) {
+    console.error("Error solving question by ID:", error.message);
+    res.status(500).json({ error: "Failed to solve the question" });
+  }
+};
+
 module.exports = {
   addQuestion,
   addQuestionsFromJson,
@@ -312,4 +410,5 @@ module.exports = {
   toggleFavoriteQuestion,
   getFavoriteQuestions,
   solveQuestion,
+  solveQuestionById,
 };
