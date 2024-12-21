@@ -84,7 +84,11 @@ const submitMockTest = async (req, res) => {
     res.json({
       status: "success",
       message: "Test submitted successfully.",
-      data: { score, total: testSession.questions.length },
+      data: {
+        score,
+        total: testSession.questions.length,
+        percentage: ((score / testSession.questions.length) * 100).toFixed(2),
+      },
     });
   } catch (error) {
     console.error("Error submitting mock test:", error.message);
