@@ -20,7 +20,10 @@ const getMockTestQuestions = async (req, res) => {
     if (questions.length === 0) {
       return res
         .status(404)
-        .json({ status: "error", message: "No questions found for this course." });
+        .json({
+          status: "error",
+          message: "No questions found for this course.",
+        });
     }
 
     // Save test session to the database
@@ -32,10 +35,14 @@ const getMockTestQuestions = async (req, res) => {
     });
     await testSession.save();
 
+    // Include sessionId in the response
     res.json({
       status: "success",
       message: "Mock test questions retrieved successfully.",
-      data: { questions },
+      data: {
+        sessionId: testSession._id, // Return the session ID
+        questions,
+      },
     });
   } catch (error) {
     console.error("Error fetching mock test questions:", error.message);
