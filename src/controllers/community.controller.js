@@ -1,4 +1,3 @@
-const Chat = require("../models/chat.model");
 const Community = require("../models/community.model");
 const Message = require("../models/message.model");
 
@@ -167,10 +166,81 @@ const getCommunityMessages = async (req, res) => {
   }
 };
 
+// Fetch All Communities without sorting
+const getAllCommunities = async (req, res) => {
+  try {
+    const communities = await Community.find().populate(
+      "createdBy",
+      "fullname"
+    );
+    res.json({ status: "success", data: { communities } });
+  } catch (error) {
+    console.error("Error fetching communities:", error.message);
+    res.status(500).json({ status: "error", message: "Server error." });
+  }
+};
+
+// Delete a Community
+const deleteCommunity = async (req, res) => {
+  const { communityId } = req.params;
+
+  try {
+    const community = await Community.findByIdAndDelete(communityId);
+    if (!community) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Community not found." });
+    }
+
+    res.json({ status: "success", message: "Community deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting community:", error.message);
+    res.status(500).json({ status: "error", message: "Server error." });
+  }
+};
+
+// Edit Community Details
+const editCommunity = async (req, res) => {
+  const { communityId } = req.params;
+  const { name, description } = req.body;
+
+  if (!name || !description) {
+    return res
+      .status(400)
+      .json({ status: "error", message: "Name and description are required." });
+  }
+
+  try {
+    const community = await Community.findByIdAndUpdate(
+      communityId,
+      { name, description },
+      { new: true }
+    );
+
+    if (!community) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Community not found." });
+    }
+
+    res.json({
+      status: "success",
+      message: "Community updated successfully.",
+      data: { community },
+    });
+  } catch (error) {
+    console.error("Error editing community:", error.message);
+    res.status(500).json({ status: "error", message: "Server error." });
+  }
+};
+
 module.exports = {
   createCommunity,
   getCommunities,
   joinCommunity,
   postMessage,
   getCommunityMessages,
+  getAllCommunities,
+  deleteCommunity,
+  editCommunity,
 };
