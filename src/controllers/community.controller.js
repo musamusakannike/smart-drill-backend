@@ -99,6 +99,7 @@ const postMessage = async (req, res) => {
   }
 
   try {
+    // Check if the community exists
     const community = await Community.findById(communityId);
     if (!community) {
       return res
@@ -106,6 +107,7 @@ const postMessage = async (req, res) => {
         .json({ status: "error", message: "Community not found." });
     }
 
+    // Check if the user is a member of the community
     if (!community.members.includes(req.user._id)) {
       return res.status(403).json({
         status: "error",
@@ -113,15 +115,21 @@ const postMessage = async (req, res) => {
       });
     }
 
-    const chat = new Chat({
-      communityId,
-      userId: req.user._id,
+    // Create a new message in the Message model
+    const newMessage = new Message({
+      community: communityId,
+      sender: req.user._id,
       message,
     });
 
-    await chat.save();
+    // Save the message to the database
+    await newMessage.save();
 
-    res.json({ status: "success", message: "Message posted.", data: { chat } });
+    res.json({
+      status: "success",
+      message: "Message posted successfully.",
+      data: { message: newMessage },
+    });
   } catch (error) {
     console.error("Error posting message:", error.message);
     res.status(500).json({ status: "error", message: "Server error." });
