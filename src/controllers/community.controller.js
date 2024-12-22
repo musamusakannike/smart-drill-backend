@@ -32,11 +32,27 @@ const createCommunity = async (req, res) => {
 
 const getCommunities = async (req, res) => {
   try {
+    // Fetch all communities
     const communities = await Community.find()
       .populate("createdBy", "fullname")
-      .select("-members"); // Exclude the members list
+      .select("-members");
 
-    res.json({ status: "success", data: { communities } });
+    const userId = req.user._id;
+
+    // Fetch user's joined communities
+    const joinedCommunities = await Community.find({ members: userId })
+      .populate("createdBy", "fullname")
+      .select("-members");
+
+    // Fetch communities the user has not joined
+    const otherCommunities = await Community.find({ members: { $ne: userId } })
+      .populate("createdBy", "fullname")
+      .select("-members");
+
+    res.json({
+      status: "success",
+      data: { joinedCommunities, otherCommunities },
+    });
   } catch (error) {
     console.error("Error fetching communities:", error.message);
     res.status(500).json({ status: "error", message: "Server error." });
@@ -90,12 +106,10 @@ const postMessage = async (req, res) => {
     }
 
     if (!community.members.includes(req.user._id)) {
-      return res
-        .status(403)
-        .json({
-          status: "error",
-          message: "You must be a member to post in this community.",
-        });
+      return res.status(403).json({
+        status: "error",
+        message: "You must be a member to post in this community.",
+      });
     }
 
     const chat = new Chat({
@@ -113,4 +127,9 @@ const postMessage = async (req, res) => {
   }
 };
 
-module.exports = { createCommunity, getCommunities, joinCommunity, postMessage };
+module.exports = {
+  createCommunity,
+  getCommunities,
+  joinCommunity,
+  postMessage,
+};
