@@ -15,6 +15,7 @@ const authRoutes = require("./routes/auth.route");
 const userRoutes = require("./routes/user.route");
 const questionRoutes = require("./routes/question.route");
 const mockTestRoutes = require("./routes/mock-test.route");
+const communityRoutes = require("./routes/community.route");
 
 const app = express();
 connectDB();
@@ -38,6 +39,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/questions", questionRoutes);
 app.use("/api/v1/mock-test", mockTestRoutes);
+app.use("/api/v1/communities", communityRoutes);
 
 // Fallback for undefined routes
 app.use((req, res, next) => {
