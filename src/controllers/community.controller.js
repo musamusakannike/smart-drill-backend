@@ -46,7 +46,6 @@ const getCommunities = async (req, res) => {
     // Fetch communities the user has not joined
     const otherCommunities = await Community.find({ members: { $ne: userId } })
       .populate("createdBy", "fullname")
-      .select("-members");
 
     res.json({
       status: "success",
