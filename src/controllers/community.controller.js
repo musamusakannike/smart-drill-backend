@@ -1,5 +1,6 @@
 const Chat = require("../models/chat.model");
 const Community = require("../models/community.model");
+const Message = require("../models/message.model");
 
 const createCommunity = async (req, res) => {
   const { name, description } = req.body;
@@ -40,12 +41,14 @@ const getCommunities = async (req, res) => {
     const userId = req.user._id;
 
     // Fetch user's joined communities
-    const joinedCommunities = await Community.find({ members: userId })
-      .populate("createdBy", "fullname")
+    const joinedCommunities = await Community.find({
+      members: userId,
+    }).populate("createdBy", "fullname");
 
     // Fetch communities the user has not joined
-    const otherCommunities = await Community.find({ members: { $ne: userId } })
-      .populate("createdBy", "fullname")
+    const otherCommunities = await Community.find({
+      members: { $ne: userId },
+    }).populate("createdBy", "fullname");
 
     res.json({
       status: "success",
@@ -125,9 +128,41 @@ const postMessage = async (req, res) => {
   }
 };
 
+const getCommunityMessages = async (req, res) => {
+  const { communityId } = req.params;
+
+  try {
+    const community = await Community.findById(communityId).populate(
+      "createdBy",
+      "fullname"
+    );
+    if (!community) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Community not found." });
+    }
+
+    const messages = await Message.find({ community: communityId })
+      .populate("sender", "fullname")
+      .sort({ createdAt: 1 }); // Sort messages by creation time in ascending order
+
+    res.json({
+      status: "success",
+      data: {
+        community,
+        messages,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching community messages:", error.message);
+    res.status(500).json({ status: "error", message: "Server error." });
+  }
+};
+
 module.exports = {
   createCommunity,
   getCommunities,
   joinCommunity,
   postMessage,
+  getCommunityMessages,
 };
