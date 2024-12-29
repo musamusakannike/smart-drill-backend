@@ -15,15 +15,17 @@ const getMockTestQuestions = async (req, res) => {
     const questions = await Question.aggregate([
       { $match: { course } }, // Match questions by course
       { $sample: { size: 20 } }, // Randomly sample 20 questions
+      {
+        $project: {
+          correctOption: 0, // Exclude the correctOption field
+        },
+      },
     ]);
-
     if (questions.length === 0) {
-      return res
-        .status(404)
-        .json({
-          status: "error",
-          message: "No questions found for this course.",
-        });
+      return res.status(404).json({
+        status: "error",
+        message: "No questions found for this course.",
+      });
     }
 
     // Save test session to the database
