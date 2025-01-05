@@ -72,10 +72,18 @@ const submitMockTest = async (req, res) => {
 
     // Calculate the score
     let score = 0;
-    testSession.questions.forEach((question, index) => {
-      if (question.correctOption === answers[index]) {
-        score += 1;
-      }
+    const corrections = testSession.questions.map((question, index) => {
+      const isCorrect = question.correctOption === answers[index];
+      if (isCorrect) score += 1;
+
+      return {
+        question: question.question,
+        options: question.options,
+        correctOption: question.correctOption,
+        userAnswer: answers[index],
+        isCorrect,
+        explanation: question.explanation,
+      };
     });
 
     // Save the test completion time and score
@@ -90,6 +98,7 @@ const submitMockTest = async (req, res) => {
         score,
         total: testSession.questions.length,
         percentage: ((score / testSession.questions.length) * 100).toFixed(2),
+        corrections, // Include correction details
       },
     });
   } catch (error) {
@@ -97,5 +106,6 @@ const submitMockTest = async (req, res) => {
     res.status(500).json({ status: "error", message: "Server error." });
   }
 };
+
 
 module.exports = { getMockTestQuestions, submitMockTest };
