@@ -107,5 +107,92 @@ const submitMockTest = async (req, res) => {
   }
 };
 
+const getMockTestHistory = async (req, res) => {
+  try {
+    // Find all mock test sessions for the authenticated user
+    const mockTests = await MockTestSession.find({ userId: req.user._id })
+      .populate("questions") // Populate question details if needed
+      .sort({ startTime: -1 }); // Sort by most recent first
 
-module.exports = { getMockTestQuestions, submitMockTest };
+    if (mockTests.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No mock test history found.",
+      });
+    }
+
+    // Format the response
+    const mockTestDetails = mockTests.map((test) => ({
+      sessionId: test._id,
+      course: test.course,
+      score: test.score,
+      totalQuestions: test.questions.length,
+      percentage: ((test.score / test.questions.length) * 100).toFixed(2),
+      startTime: test.startTime,
+      endTime: test.endTime,
+      questions: test.questions.map((question) => ({
+        question: question.question,
+        options: question.options,
+        explanation: question.explanation,
+      })),
+    }));
+
+    res.json({
+      status: "success",
+      message: "Mock test history retrieved successfully.",
+      data: mockTestDetails,
+    });
+  } catch (error) {
+    console.error("Error fetching mock test history:", error.message);
+    res.status(500).json({ status: "error", message: "Server error." });
+  }
+};
+
+const getMockTestDetails = async (req, res) => {
+  const { sessionId } = req.params;
+
+  try {
+    // Find the mock test session by its ID
+    const testSession = await MockTestSession.findById(sessionId).populate(
+      "questions"
+    );
+
+    if (!testSession) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Mock test session not found." });
+    }
+
+    // Format the response
+    const mockTestDetails = {
+      sessionId: testSession._id,
+      course: testSession.course,
+      score: testSession.score,
+      totalQuestions: testSession.questions.length,
+      percentage: (
+        (testSession.score / testSession.questions.length) *
+        100
+      ).toFixed(2),
+      startTime: testSession.startTime,
+      endTime: testSession.endTime,
+      corrections: testSession.questions.map((question) => ({
+        question: question.question,
+        options: question.options,
+        correctOption: question.correctOption,
+        explanation: question.explanation,
+      })),
+    };
+
+    res.json({
+      status: "success",
+      message: "Mock test details retrieved successfully.",
+      data: mockTestDetails,
+    });
+  } catch (error) {
+    console.error("Error fetching mock test details:", error.message);
+    res.status(500).json({ status: "error", message: "Server error." });
+  }
+};
+
+
+module.exports = { getMockTestQuestions, submitMockTest, getMockTestHistory, getMockTestDetails };
