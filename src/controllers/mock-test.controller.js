@@ -11,16 +11,20 @@ const getMockTestQuestions = async (req, res) => {
   }
 
   try {
-    // Fetch 20 random questions for the course
+    // Determine the number of questions to fetch
+    const questionCount = course === "GST111" ? 60 : 20;
+
+    // Fetch random questions based on the course
     const questions = await Question.aggregate([
       { $match: { course } }, // Match questions by course
-      { $sample: { size: 20 } }, // Randomly sample 20 questions
+      { $sample: { size: questionCount } }, // Randomly sample questions
       {
         $project: {
           correctOption: 0, // Exclude the correctOption field
         },
       },
     ]);
+
     if (questions.length === 0) {
       return res.status(404).json({
         status: "error",
